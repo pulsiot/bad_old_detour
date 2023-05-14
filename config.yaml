@@ -1,0 +1,4 @@
+routes:
+  /google: https://www.google.com/
+  /github: https://www.github.com/
+  /pulsiot: https://pulsiot.com/
