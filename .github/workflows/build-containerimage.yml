@@ -34,7 +34,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: build
-        run: docker build . --file Dockerfile --tag ${{ secrets.DOCKER_ORG }}/detour:${{ steps.vars.outputs.tag }} --tag ${{ secrets.DOCKER_USERNAME }}/detour:latest
+        run: docker build . --file Dockerfile --tag ${{ env.DOCKER_ORG }}/detour:${{ steps.vars.outputs.tag }} --tag ${{ env.DOCKER_USERNAME }}/detour:latest
 
       - name: push
-        run: docker image push --all-tags ${{ secrets.DOCKER_ORG }}/detour
+        run: docker image push --all-tags ${{ env.DOCKER_ORG }}/detour
