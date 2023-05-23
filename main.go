@@ -4,45 +4,80 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"log"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
+	"os"
 )
 
+// Config represents the structure of the configuration file (config.yaml)
 type Config struct {
-	Routes map[string]string `yaml:"routes"`
+	Rules []Rule `yaml:"rules"`
+}
+
+// Rule represents the redirection rule
+type Rule struct {
+	Source      string `yaml:"source"`
+	Destination string `yaml:"destination"`
+}
+
+// ProxyHandler redirects incoming requests based on the configuration rules
+func ProxyHandler(config Config) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		for _, rule := range config.Rules {
+			if r.Host == rule.Source {
+				destination := rule.Destination + r.URL.String()
+				log.Printf("Redirecting request from %s to %s\n", r.Host, destination)
+				http.Redirect(w, r, destination, http.StatusMovedPermanently)
+				return
+			}
+		}
+		log.Printf("No redirection rule found for host: %s\n", r.Host)
+		http.NotFound(w, r)
+	}
 }
 
 func main() {
-	// Load configuration file
-	configFile, err := ioutil.ReadFile("config.yaml")
+	// Set up access and error logging
+	accessLog, err := os.OpenFile("access.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalf("Failed to open access log file: %v", err)
 	}
+	defer accessLog.Close()
 
-	config := Config{}
-	err = yaml.Unmarshal(configFile, &config)
+	errorLog, err := os.OpenFile("error.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatalf("Failed to open error log file: %v", err)
+	}
+	defer errorLog.Close()
+
+	// Set the log output to both the log files and stdout
+	log.SetOutput(io.MultiWriter(accessLog, os.Stdout))
+	log.SetErrorOutput(io.MultiWriter(errorLog, os.Stderr))
+
+	// Read the configuration file
+	data, err := ioutil.ReadFile("config.yaml")
+	if err != nil {
+		log.Fatalf("Failed to read config file: %v", err)
 	}
 
-	// Create reverse proxy
-	proxy := &httputil.ReverseProxy{
-		Director: func(req *http.Request) {
-			dest, ok := config.Routes[req.URL.Path]
-			if ok {
-				target, _ := url.Parse(dest)
-				req.URL.Scheme = target.Scheme
-				req.URL.Host = target.Host
-				req.URL.Path = target.Path
-			}
-		},
+	// Parse the configuration
+	var config Config
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		log.Fatalf("Failed to parse config file: %v", err)
 	}
 
-	// Start server
-	http.HandleFunc("/", proxy.ServeHTTP)
-	fmt.Println("Starting server on :8080")
-	http.ListenAndServe(":8080", nil)
+	// Create a new HTTP server
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: http.HandlerFunc(ProxyHandler(config)),
+		ErrorLog: log.New(errorLog, "", 0),
+	}
+
+	// Start the server
+	log.Println("Proxy server started on port 8080")
+	err = server.ListenAndServeTLS("cert.pem", "key.pem")
+	if err != nil {
+		log.Fatalf("Failed to start proxy server: %v", err)
+	}
 }

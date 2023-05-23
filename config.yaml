@@ -1,4 +1,6 @@
-routes:
-  /google: https://www.google.com/
-  /github: https://www.github.com/
-  /pulsiot: https://pulsiot.com/
+rules:
+  - source: example.com
+    destination: http://localhost:8000
+  - source: subdomain.example.com
+    destination: http://localhost:9000
+
