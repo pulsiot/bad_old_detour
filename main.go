@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -65,10 +64,6 @@ func main() {
 	}
 	defer errorLog.Close()
 
-	// Set the log output to both the log files and stdout
-	log.SetOutput(io.MultiWriter(accessLog, os.Stdout))
-	log.SetErrorOutput(io.MultiWriter(errorLog, os.Stderr))
-
 	// Read the configuration file
 	data, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
@@ -84,8 +79,8 @@ func main() {
 
 	// Create a new HTTP server
 	server := &http.Server{
-		Addr:    ":8080",
-		Handler: http.HandlerFunc(ProxyHandler(config)),
+		Addr:     ":8080",
+		Handler:  http.HandlerFunc(ProxyHandler(config)),
 		ErrorLog: log.New(errorLog, "", 0),
 	}
 
