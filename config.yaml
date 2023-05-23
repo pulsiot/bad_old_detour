@@ -1,6 +1,7 @@
+certificate: /path/to/cert.pem
+key: /path/to/key.pem
 rules:
   - source: https://example.com
     destination: https://localhost:8000
   - source: http://subdomain.example.com
     destination: http://localhost:9000
-
