@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -24,10 +25,24 @@ type Rule struct {
 func ProxyHandler(config Config) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		for _, rule := range config.Rules {
-			if r.Host == rule.Source {
-				destination := rule.Destination + r.URL.String()
-				log.Printf("Redirecting request from %s to %s\n", r.Host, destination)
-				http.Redirect(w, r, destination, http.StatusMovedPermanently)
+			sourceURL, err := url.Parse(rule.Source)
+			if err != nil {
+				log.Printf("Invalid source URL: %s\n", rule.Source)
+				continue
+			}
+
+			if r.Host == sourceURL.Host {
+				destinationURL, err := url.Parse(rule.Destination)
+				if err != nil {
+					log.Printf("Invalid destination URL: %s\n", rule.Destination)
+					continue
+				}
+
+				destinationURL.Path = r.URL.Path
+				destinationURL.RawQuery = r.URL.RawQuery
+
+				log.Printf("Redirecting request from %s to %s\n", r.Host, destinationURL.String())
+				http.Redirect(w, r, destinationURL.String(), http.StatusMovedPermanently)
 				return
 			}
 		}
@@ -81,3 +96,4 @@ func main() {
 		log.Fatalf("Failed to start proxy server: %v", err)
 	}
 }
+
