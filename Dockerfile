@@ -14,9 +14,8 @@ FROM scratch
 # Copy our static executable.
 COPY --from=builder /bin/detour-proxy /app/detour-proxy
 COPY --from=builder /go/src/mypackage/myapp/config.yaml /app/config.yaml
-RUN mkdir -vp /etc/detour
-COPY ./detour/cert.pem /etc/detour/cert.pem
-COPY ./detour/key.pem /etc/detour/key.pem
+COPY --from=builder /go/src/mypackage/myapp/detour/cert.pem /cert.pem
+COPY --from=builder /go/src/mypackage/myapp/detour/key.pem /key.pem
 WORKDIR /app
 # Run the hello binary.
 ENTRYPOINT ["/app/detour-proxy"]

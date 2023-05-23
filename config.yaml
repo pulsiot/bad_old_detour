@@ -1,5 +1,5 @@
-certificate: /etc/detour/cert.pem
-key: /etc/detour/key.pem
+certificate: /cert.pem
+key: /key.pem
 rules:
   - source: https://example.com
     destination: https://localhost:8000
